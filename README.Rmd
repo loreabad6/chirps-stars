@@ -1,13 +1,29 @@
 ---
 title: "chirps-stars"
-author: "Lorena Abad"
-date: "04 April 2019"
 output: github_document
+bibliography: D:/MendeleyBib/Z_GIS.bib
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Exploration of CHIRPS data using R and the stars package for handling NetCDF files.
+*Exploration of CHIRPS data using R and the stars package for handling NetCDF files.*
 
+## CHIRPS data
+
+"The Climate Hazards Group Infrared Precipitation with Station data (CHIRPS) is a high-resolution climatic database of precipitation embracing monthly precipitation climatology, quasi-global geostationary thermal infrared satellite observations from the Tropical Rainfall Measuring Mission (TRMM) 3B42 product, atmospheric model rainfall fields from National Oceanic and Atmospheric Administration – Climate Forecast System (NOAA CFS), and precipitation observations from various sources." [@Retalis2017]
+
+Overall it is a combination of station-base observations around the world, and satellite derived data for meteorology, including TRMM and NOAA, which are normally used for precipitation analysis. 
+
+The data covers information from 1981 to the present on a daily, monthly, yearly and decadal basis. It spans latitudes between 50°S and 50°N and all longitudes. The data is presented in a raster format with a cell siye of 0.05° or 0.25°. Each of the cells represent a rain gauge [@Funk2015]. 
+
+## Data download
+
+The daily data which will be analyzed can be downloaded per year, either as a NetCDF file, where each band corresponds to a day; or daily as TIFF files. In this case I decided to work with NetCDF files and will explain how to explore the data using R and the `stars`package. 
+
+The data can be downloaded from this [link](ftp://ftp.chg.ucsb.edu/pub/org/chg/products/CHIRPS-2.0/). To explore initially the data, I will use the year 2019 at 0.05° resolution, which has information up to February. 
+
+
+
+# References
