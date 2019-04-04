@@ -20,10 +20,10 @@ The data covers information from 1981 to the present on a daily, monthly, yearly
 
 ## Data download
 
-The daily data which will be analyzed can be downloaded per year, either as a NetCDF file, where each band corresponds to a day; or daily as TIFF files. In this case I decided to work with NetCDF files and will explain how to explore the data using R and the `stars`package. 
+The global daily data which will be analyzed can be downloaded per year, either as a NetCDF file, where each band corresponds to a day; or daily as TIFF files. In this case I decided to work with NetCDF files and will explain how to explore the data using R and the `stars`package. 
 
-The data can be downloaded from this [link](ftp://ftp.chg.ucsb.edu/pub/org/chg/products/CHIRPS-2.0/). To explore initially the data, I will use the year 2019 at 0.05° resolution, which has information up to February. 
+The data can be downloaded from this link (ftp://ftp.chg.ucsb.edu/pub/org/chg/products/CHIRPS-2.0/)[^1]. To explore initially the data, I will use the year 2019 at 0.05° resolution, which has information up to February. 
 
-
+[^1]: ftp links not working in Markdown.
 
 # References
