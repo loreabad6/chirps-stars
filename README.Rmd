@@ -1,0 +1,13 @@
+---
+title: "chirps-stars"
+author: "Lorena Abad"
+date: "04 April 2019"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Exploration of CHIRPS data using R and the stars package for handling NetCDF files.
+
