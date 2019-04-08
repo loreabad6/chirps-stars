@@ -4,3 +4,4 @@
 .Ruserdata
 .Renviron
 *.nc
+*_cache*

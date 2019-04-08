@@ -44,6 +44,14 @@ chirps19 <- read_stars('chirps-v2.0.2019.days_p05.nc')
 chirps19
 ```
 
+Setting a projection:
+
+```{r}
+chirps19 <- st_set_crs(chirps19, value = 4326)
+chirps19
+```
+
+
 
 
 
