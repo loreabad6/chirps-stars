@@ -4,5 +4,5 @@
 .Ruserdata
 .Renviron
 *.nc
-*.tif
+*.tif*
 *_cache*

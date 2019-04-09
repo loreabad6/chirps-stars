@@ -245,18 +245,19 @@ ggplot() +
 
 ![](README_files/figure-markdown_github/ggplot_ex-2.png)
 
-Just as a small analysis, we can see that there are several NA values for Peru, whereas, for Taiwan, the data seems fairly complete. Only a small subset of the 59 days available were taken for visualization. The data itself represents precipitation in mm/day.
-
-It seems like the data available will not be suitable for the Coordillera Blanca study area in Peru. We can see this more clearly with an interactive map.
+Only a small subset of the 59 days available were taken for visualization. The data itself represents precipitation in mm/day. Just as a small analysis, we can see that there are several NA values for Peru, whereas, for Taiwan, the data seems fairly complete. It seems like the data available will not be suitable for the Cordillera Blanca study area in Peru. Looking at the data in QGIS, I noticed that the data just skips the Kizl glacier. so probably, for this case we still need to look at the SENAMHI data.
 
 ``` r
-library(mapview)
-mapView(chirps19_peru, band = 1)
+knitr::include_graphics('README_files/figure-markdown_github/kinzl_peru.png')
 ```
 
-    ## Warning in any(is.na(vals)): wandle Argument des Typs 'list' nach boolesch
+<img src="README_files/figure-markdown_github/kinzl_peru.png" width="1208" />
 
-    ## Error in addRasterLegend(x = x, map = m, title = grp, group = grp, at = at, : (list) Objekt kann nicht nach 'logical' umgewandelt werden
+``` r
+knitr::include_graphics('README_files/figure-markdown_github/kinzl_zoom.png')
+```
+
+<img src="README_files/figure-markdown_github/kinzl_zoom.png" width="1209" />
 
 References
 ==========
