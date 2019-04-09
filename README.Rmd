@@ -26,7 +26,7 @@ To explore initially the data, I will use the year 2019 at 0.05° resolution, wh
 
 [^1]: ftp links not working in Markdown.
 
-## Loading data into R
+## Manipulating the data in R
 
 The focus of this data exploration is to use NetCDF files in R. This file format is meant for array oriented storage. It can have multiple dimesions and its applications span climatology, meteorology, oceanography, and general GIS data handling. 
 
@@ -36,23 +36,125 @@ Packages such as `netcdf4` and `RNetCDF` are meant to handle such data in R. How
 devtools::install_github('r-spatial/stars')
 ```
 
-To load the data, `stars` makes use of its generic `read_stars` function which allows reading raster/array data. The function `read_ncdf` is also available and uses the netcdf package directly to load. 
+To load the data, `stars` makes use of its generic `read_stars` function which allows reading raster/array data. The function `read_ncdf` is also available and uses the netcdf package directly to load. We load the data as a `stars_proxy` object which allows for faster manipulation of the data.
 
 ```{r}
 library(stars)
-chirps19 <- read_stars('chirps-v2.0.2019.days_p05.nc')
+chirps19 <- read_stars('chirps-v2.0.2019.days_p05.nc', proxy = T)
 chirps19
 ```
 
-Setting a projection:
+the data is not really loaded into R's memory but only accessed when necessary. Basic subsetting functions can be applied. For this, we can use the `tidyverse` functions by using the `dplyr` package. 
+
+```{r plot_ex}
+library(dplyr)
+library(magrittr)
+chirps19 %>% slice(band, 13) %T>% plot(breaks = 'equal')
+```
+
+The plotting works with a different cell size, but this is only for speed purposes and is not the actual resolution. 
+If we extract a smaller study area we can see this change. 
+
+For this we can first take a look at the `rnaturalearth` packages.
 
 ```{r}
-chirps19 <- st_set_crs(chirps19, value = 4326)
-chirps19
+library(rnaturalearth)
+library(rnaturalearthdata)
+world <- ne_countries(scale = 'medium', returnclass = 'sf')
+taiwan <- world %>% filter(admin == 'Taiwan')
+peru <- world %>% filter(admin == 'Peru')
 ```
 
+The CRS should be the same for the clipping object and the precipitation data. 
 
+```{r}
+st_crs(world)
+```
 
+However, there are some issues with the NetCDF file projection. The delta and offset values are not set. Hence, we will take them from the same data but on the TIFF version.
+
+```{r}
+chirps_tif <- read_stars('chirps-v2.0.2019.02.28.tif', proxy = T)
+chirps_tif
+```
+
+Projecting the NetCDF file will follow the next procedure:
+
+```{r}
+chirps19_proj <- chirps19 %>% st_set_crs(st_crs(chirps_tif))
+
+attr(chirps19_proj, 'dimensions')[[1]]$delta = attr(chirps_tif, 'dimensions')[[1]]$delta
+attr(chirps19_proj, 'dimensions')[[2]]$delta = attr(chirps_tif, 'dimensions')[[2]]$delta
+attr(chirps19_proj, 'dimensions')[[1]]$offset = attr(chirps_tif, 'dimensions')[[1]]$offset
+attr(chirps19_proj, 'dimensions')[[2]]$offset = attr(chirps_tif, 'dimensions')[[2]]$offset
+```
+
+Once we have this, we can view the data just for the study areas.
+
+```{r subset_ex}
+chirps19_proj[peru][,,,1:15] %T>% plot(breaks = 'equal') 
+chirps19_proj[taiwan][,,,1:15] %T>% plot(breaks = 'equal') 
+```
+
+Once we have the data we need, we can really call it into R for further analysis. In this step I will also set the NA value to -9999
+
+```{r}
+chirps19_peru <- chirps19_proj[peru] %>% st_as_stars() %>% na_if(-9999)
+chirps19_taiwan <- chirps19_proj[taiwan] %>% st_as_stars() %>% na_if(-9999)
+```
+
+One thing to be aware of is that the projection does not come with the new data, and therefore the process should be repeated. 
+
+```{r}
+chirps19_peru <- chirps19_peru %>% st_set_crs(st_crs(chirps_tif))
+attr(chirps19_peru, 'dimensions')[[1]]$delta = attr(chirps_tif, 'dimensions')[[1]]$delta
+attr(chirps19_peru, 'dimensions')[[2]]$delta = attr(chirps_tif, 'dimensions')[[2]]$delta
+attr(chirps19_peru, 'dimensions')[[1]]$offset = attr(chirps_tif, 'dimensions')[[1]]$offset
+attr(chirps19_peru, 'dimensions')[[2]]$offset = attr(chirps_tif, 'dimensions')[[2]]$offset
+
+chirps19_taiwan <- chirps19_taiwan %>% st_set_crs(st_crs(chirps_tif))
+attr(chirps19_taiwan, 'dimensions')[[1]]$delta = attr(chirps_tif, 'dimensions')[[1]]$delta
+attr(chirps19_taiwan, 'dimensions')[[2]]$delta = attr(chirps_tif, 'dimensions')[[2]]$delta
+attr(chirps19_taiwan, 'dimensions')[[1]]$offset = attr(chirps_tif, 'dimensions')[[1]]$offset
+attr(chirps19_taiwan, 'dimensions')[[2]]$offset = attr(chirps_tif, 'dimensions')[[2]]$offset
+```
+
+With this, we can do better plots by using the `ggplot2` package. 
+
+```{r ggplot_ex}
+library(ggplot2)
+library(viridis)
+ggplot() +
+  geom_stars(data = chirps19_peru[,,,27:32]) +
+  geom_sf(data = peru, fill = NA, color = 'red') +
+  facet_wrap(~band) +
+  scale_fill_viridis(na.value = 'white') +
+  theme_void() +
+  theme(
+    legend.position = 'bottom',
+    panel.grid.major = element_line(color = 'white')
+  )
+
+ggplot() +
+  geom_stars(data = chirps19_taiwan[,,,25:30]) +
+  geom_sf(data = taiwan, fill = NA, color = 'red') +
+  facet_wrap(~band) +
+  scale_fill_viridis(na.value = 'white') +
+  theme_void() +
+  theme(
+    legend.position = 'bottom',
+    panel.grid.major = element_line(color = 'white')
+  )
+```
+
+Just as a small analysis, we can see that there are several NA values for Peru, whereas, for Taiwan, the data seems fairly complete. Only a small subset of the 59 days available were taken for visualization. The data itself represents precipitation in mm/day.
+
+It seems like the data available will not be suitable for the Coordillera Blanca study area in Peru. We can see this more clearly with an interactive map.
+
+```{r, error=T}
+library(mapview)
+mapView(chirps19_peru, band = 1)
+```
 
 
 # References
