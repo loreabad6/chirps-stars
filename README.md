@@ -247,9 +247,9 @@ ggplot() +
 
 Only a small subset of the 59 days available were taken for visualization. The data itself represents precipitation in mm/day. Just as a small analysis, we can see that there are several NA values for Peru, whereas, for Taiwan, the data seems fairly complete. It seems like the data available will not be suitable for the Cordillera Blanca study area in Peru. Looking at the data in QGIS, I noticed that the data just skips the Kizl glacier. so probably, for this case we still need to look at the SENAMHI data.
 
-![](README_files/figure-markdown_github/kinzl_peru.png)
+![](./README_files/figure-markdown_github/kinzl_peru.png)
 
-![](README_files/figure-markdown_github/kinzl_zoom.png)
+![](./README_files/figure-markdown_github/kinzl_zoom.png)
 
 References
 ==========
