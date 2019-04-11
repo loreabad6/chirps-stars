@@ -30,7 +30,7 @@ Packages such as `netcdf4` and `RNetCDF` are meant to handle such data in R. How
 devtools::install_github('r-spatial/stars')
 ```
 
-To load the data, `stars` makes use of its generic `read_stars` function which allows reading raster/array data. The function `read_ncdf` is also available and uses the netcdf package directly to load. We load the data as a `stars_proxy` object which allows for faster manipulation of the data.
+To load the data, `stars` makes use of its generic `read_stars` function which allows reading raster/array data. The function `read_ncdf` is also available and uses the netcdf package directly to load. ~~We load the data as a `stars_proxy` object which allows for faster manipulation of the data.~~ (There are some issues while projecting the data as a proxy and then cropping which I will try to report to the package developers.)
 
 ``` r
 library(stars)
@@ -43,21 +43,27 @@ library(stars)
     ## Linking to GEOS 3.6.1, GDAL 2.2.3, PROJ 4.9.3
 
 ``` r
-chirps19 <- read_stars('chirps-v2.0.2019.days_p05.nc', proxy = T)
+chirps19 <- read_stars('chirps-v2.0.2019.days_p05.nc', NA_value = -9999)
 chirps19
 ```
 
-    ## stars_proxy object with 1 attribute in file:
-    ## $`chirps-v2.0.2019.days_p05.nc`
-    ## [1] "chirps-v2.0.2019.days_p05.nc"
-    ## 
+    ## stars object with 3 dimensions and 1 attribute
+    ## attribute(s), summary of first 1e+05 cells:
+    ##  chirps-v2.0.2019.days_p05.nc 
+    ##  Min.   : 0.00                
+    ##  1st Qu.: 0.00                
+    ##  Median : 1.43                
+    ##  Mean   : 1.40                
+    ##  3rd Qu.: 2.28                
+    ##  Max.   :12.38                
+    ##  NA's   :97816                
     ## dimension(s):
     ##      from   to offset delta refsys point values    
     ## x       1 7200     NA    NA     NA    NA   NULL [x]
     ## y       1 2000     NA    NA     NA    NA   NULL [y]
     ## band    1   59     NA    NA     NA    NA   NULL
 
-the data is not really loaded into R's memory but only accessed when necessary. Basic subsetting functions can be applied. For this, we can use the `tidyverse` functions by using the `dplyr` package.
+Basic subsetting functions can be applied. For this, we can use the `tidyverse` functions by using the `dplyr` package. In the example below I take day 13 for a basic visualization. The pixel size is larger as we are loading the data as a proxy and visualization gets enhanced.
 
 ``` r
 library(dplyr)
@@ -81,22 +87,22 @@ chirps19 %>% slice(band, 13) %T>% plot(breaks = 'equal')
 
 ![](README_files/figure-markdown_github/plot_ex-1.png)
 
-    ## stars_proxy object with 1 attribute in file:
-    ## $`chirps-v2.0.2019.days_p05.nc`
-    ## [1] "chirps-v2.0.2019.days_p05.nc"
-    ## 
+    ## stars object with 2 dimensions and 1 attribute
+    ## attribute(s), summary of first 1e+05 cells:
+    ##  chirps.v2.0.2019.days_p05.nc 
+    ##  Min.   : 0.00                
+    ##  1st Qu.: 0.00                
+    ##  Median : 0.00                
+    ##  Mean   : 1.50                
+    ##  3rd Qu.: 0.91                
+    ##  Max.   :90.16                
+    ##  NA's   :97816                
     ## dimension(s):
-    ##      from   to offset delta refsys point values    
-    ## x       1 7200     NA    NA     NA    NA   NULL [x]
-    ## y       1 2000     NA    NA     NA    NA   NULL [y]
-    ## band    1   59     NA    NA     NA    NA   NULL    
-    ## call list:
-    ## [[1]]
-    ## x[i = TRUE, , , 13, drop = TRUE]
+    ##   from   to offset delta refsys point values    
+    ## x    1 7200     NA    NA     NA    NA   NULL [x]
+    ## y    1 2000     NA    NA     NA    NA   NULL [y]
 
-The plotting works with a different cell size, but this is only for speed purposes and is not the actual resolution. If we extract a smaller study area we can see this change.
-
-For this we can first take a look at the `rnaturalearth` packages.
+If we extract a smaller study area, the pixel size plots at a better scale. For this we can first take a look at the `rnaturalearth` packages.
 
 ``` r
 library(rnaturalearth)
@@ -132,79 +138,77 @@ chirps_tif
     ## x    1 7200   -180  0.05 +proj=longlat +datum=WGS8... FALSE   NULL [x]
     ## y    1 2000     50 -0.05 +proj=longlat +datum=WGS8... FALSE   NULL [y]
 
-Projecting the NetCDF file will follow the next procedure:
+Now, although the offset and delta for `y` has a positive and negative value respectively, this does not create a good reference of the data, so I switched the signs to make it work better. Below, a quick function to make this process easier when applied to other parts.
 
 ``` r
-chirps19_proj <- chirps19 %>% st_set_crs(st_crs(chirps_tif))
-
-attr(chirps19_proj, 'dimensions')[[1]]$delta = attr(chirps_tif, 'dimensions')[[1]]$delta
-attr(chirps19_proj, 'dimensions')[[2]]$delta = attr(chirps_tif, 'dimensions')[[2]]$delta
-attr(chirps19_proj, 'dimensions')[[1]]$offset = attr(chirps_tif, 'dimensions')[[1]]$offset
-attr(chirps19_proj, 'dimensions')[[2]]$offset = attr(chirps_tif, 'dimensions')[[2]]$offset
+st_set_chirps_dimensions <- function(x){
+  x_def <- x %>% st_set_dimensions('x', offset = -180, delta = 0.05, refsys = "+proj=longlat +datum=WGS84 +no_defs")
+  x_def <- x_def %>% st_set_dimensions('y', offset = -50, delta = 0.05, refsys = "+proj=longlat +datum=WGS84 +no_defs")
+  x_def
+}
 ```
 
-Once we have this, we can view the data just for the study areas.
+``` r
+chirps19_def <- chirps19 %>% st_set_chirps_dimensions()
+```
+
+Once we have this, we can save the data as an `stars` object and plot the data just for the study areas.
 
 ``` r
-chirps19_proj[peru][,,,1:15] %T>% plot(breaks = 'equal') 
+chirps19_peru <- chirps19_def[peru] 
+```
+
+    ## although coordinates are longitude/latitude, st_intersects assumes that they are planar
+
+``` r
+chirps19_taiwan <- chirps19_def[taiwan] 
+```
+
+    ## although coordinates are longitude/latitude, st_intersects assumes that they are planar
+
+``` r
+chirps19_peru[,,,1:15] %T>% plot(breaks = 'equal') 
 ```
 
 ![](README_files/figure-markdown_github/subset_ex-1.png)
 
-    ## stars_proxy object with 1 attribute in file:
-    ## $`chirps-v2.0.2019.days_p05.nc`
-    ## [1] "chirps-v2.0.2019.days_p05.nc"
-    ## 
+    ## stars object with 3 dimensions and 1 attribute
+    ## attribute(s), summary of first 1e+05 cells:
+    ##  chirps.v2.0.2019.days_p05.nc 
+    ##  Min.   : 0.00                
+    ##  1st Qu.: 0.00                
+    ##  Median : 0.00                
+    ##  Mean   : 1.70                
+    ##  3rd Qu.: 0.00                
+    ##  Max.   :58.45                
+    ##  NA's   :56629                
     ## dimension(s):
     ##      from   to offset delta                       refsys point values    
     ## x    1974 2227   -180  0.05 +proj=longlat +datum=WGS8...    NA   NULL [x]
-    ## y    1001 1367     50 -0.05 +proj=longlat +datum=WGS8...    NA   NULL [y]
-    ## band    1   59     NA    NA                           NA    NA   NULL    
-    ## call list:
-    ## [[1]]
-    ## x[i = TRUE, , , 1:15]
+    ## y     634 1000    -50  0.05 +proj=longlat +datum=WGS8...    NA   NULL [y]
+    ## band    1   15     NA    NA                           NA    NA   NULL
 
 ``` r
-chirps19_proj[taiwan][,,,1:15] %T>% plot(breaks = 'equal') 
+chirps19_taiwan[,,,1:15] %T>% plot(breaks = 'equal') 
 ```
 
 ![](README_files/figure-markdown_github/subset_ex-2.png)
 
-    ## stars_proxy object with 1 attribute in file:
-    ## $`chirps-v2.0.2019.days_p05.nc`
-    ## [1] "chirps-v2.0.2019.days_p05.nc"
-    ## 
+    ## stars object with 3 dimensions and 1 attribute
+    ## attribute(s):
+    ##  chirps.v2.0.2019.days_p05.nc 
+    ##  Min.   : 0.00                
+    ##  1st Qu.: 0.00                
+    ##  Median : 0.00                
+    ##  Mean   : 1.49                
+    ##  3rd Qu.: 0.00                
+    ##  Max.   :68.13                
+    ##  NA's   :56430                
     ## dimension(s):
     ##      from   to offset delta                       refsys point values    
     ## x    5966 6039   -180  0.05 +proj=longlat +datum=WGS8...    NA   NULL [x]
-    ## y     495  562     50 -0.05 +proj=longlat +datum=WGS8...    NA   NULL [y]
-    ## band    1   59     NA    NA                           NA    NA   NULL    
-    ## call list:
-    ## [[1]]
-    ## x[i = TRUE, , , 1:15]
-
-Once we have the data we need, we can really call it into R for further analysis. In this step I will also set the NA value to -9999
-
-``` r
-chirps19_peru <- chirps19_proj[peru] %>% st_as_stars() %>% na_if(-9999)
-chirps19_taiwan <- chirps19_proj[taiwan] %>% st_as_stars() %>% na_if(-9999)
-```
-
-One thing to be aware of is that the projection does not come with the new data, and therefore the process should be repeated.
-
-``` r
-chirps19_peru <- chirps19_peru %>% st_set_crs(st_crs(chirps_tif))
-attr(chirps19_peru, 'dimensions')[[1]]$delta = attr(chirps_tif, 'dimensions')[[1]]$delta
-attr(chirps19_peru, 'dimensions')[[2]]$delta = attr(chirps_tif, 'dimensions')[[2]]$delta
-attr(chirps19_peru, 'dimensions')[[1]]$offset = attr(chirps_tif, 'dimensions')[[1]]$offset
-attr(chirps19_peru, 'dimensions')[[2]]$offset = attr(chirps_tif, 'dimensions')[[2]]$offset
-
-chirps19_taiwan <- chirps19_taiwan %>% st_set_crs(st_crs(chirps_tif))
-attr(chirps19_taiwan, 'dimensions')[[1]]$delta = attr(chirps_tif, 'dimensions')[[1]]$delta
-attr(chirps19_taiwan, 'dimensions')[[2]]$delta = attr(chirps_tif, 'dimensions')[[2]]$delta
-attr(chirps19_taiwan, 'dimensions')[[1]]$offset = attr(chirps_tif, 'dimensions')[[1]]$offset
-attr(chirps19_taiwan, 'dimensions')[[2]]$offset = attr(chirps_tif, 'dimensions')[[2]]$offset
-```
+    ## y    1439 1506    -50  0.05 +proj=longlat +datum=WGS8...    NA   NULL [y]
+    ## band    1   15     NA    NA                           NA    NA   NULL
 
 With this, we can do better plots by using the `ggplot2` package.
 
@@ -245,11 +249,7 @@ ggplot() +
 
 ![](README_files/figure-markdown_github/ggplot_ex-2.png)
 
-Only a small subset of the 59 days available were taken for visualization. The data itself represents precipitation in mm/day. Just as a small analysis, we can see that there are several NA values for Peru, whereas, for Taiwan, the data seems fairly complete. It seems like the data available will not be suitable for the Cordillera Blanca study area in Peru. Looking at the data in QGIS, I noticed that the data just skips the Kizl glacier. so probably, for this case we still need to look at the SENAMHI data.
-
-![](./README_files/figure-markdown_github/kinzl_peru.PNG)
-
-![](./README_files/figure-markdown_github/kinzl_zoom.PNG)
+Only a small subset of the 59 days available were taken for visualization. The data itself represents precipitation in mm/day.
 
 References
 ==========
