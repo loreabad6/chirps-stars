@@ -249,7 +249,23 @@ ggplot() +
 
 ![](README_files/figure-markdown_github/ggplot_ex-2.png)
 
-Only a small subset of the 59 days available were taken for visualization. The data itself represents precipitation in mm/day.
+Only a small subset of the 59 days available were taken for visualization. The data itself represents precipitation in mm/day. The spatial resolution of the data corresponds to ~5km.
+
+This data will ideally be used in two projects, for which a closer look to the Areas of Interest (AOI) is done below.
+
+Taiwan AOIs
+-----------
+
+![](README_files/figure-markdown_github/Taiwan_AOI.PNG)
+
+![](README_files/figure-markdown_github/Taiwan_AOI_zoom.PNG)
+
+Peru AOIs
+---------
+
+![](README_files/figure-markdown_github/Peru_AOI.PNG)
+
+![](README_files/figure-markdown_github/Peru_AOI_zoom.PNG)
 
 References
 ==========
